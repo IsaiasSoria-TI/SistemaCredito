@@ -4,30 +4,30 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-//LA CONEXIÓN SE ESTABLECIÓ
+public final class Conexion {
 
-public class Conexion {
-
-    // Credenciales
-    private static final String URL = "jdbc:mysql://localhost:3306/sistemagarantia?serverTimezone=UTC";
+    private static final String HOST = "localhost";
+    private static final String PUERTO = "3306";
+    private static final String BASE_DATOS = "sistemagarantia";
     private static final String USUARIO = "root";
-    private static final String CLAVE = "Apixela272660641";
+    private static final String CLAVE = "admin1";
 
-    // Método que realiza y devuelve la conexión
-    public Connection conectar() {
-        Connection conexion = null;
+    private static final String URL = "jdbc:mysql://" + HOST + ":" + PUERTO + "/" + BASE_DATOS
+            + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Lima";
 
-        try {
-            // Intentamos establecer la conexión
-            conexion = DriverManager.getConnection(URL, USUARIO, CLAVE);
-            System.out.println("¡Conexión exitosa a la base de datos!");
-
-        } catch (SQLException e) {
-            // Capturamos el error
-            System.out.println("Error de conexión: " + e.getMessage());
-        }
-
-        return conexion;
+    private Conexion() {
     }
 
+    public static Connection obtenerConexion() throws SQLException {
+        return DriverManager.getConnection(URL, USUARIO, CLAVE);
+    }
+
+    public static boolean probarConexion() {
+        try (Connection ignored = obtenerConexion()) {
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error de conexion: " + e.getMessage());
+            return false;
+        }
+    }
 }
