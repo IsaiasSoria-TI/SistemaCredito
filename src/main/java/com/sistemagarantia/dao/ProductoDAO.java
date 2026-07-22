@@ -27,6 +27,17 @@ public class ProductoDAO {
             INSERT INTO tb_producto (nombre, flgactivo)
             VALUES (?, ?)
             """;
+    private static final String SQL_INACTIVAR = """
+            UPDATE tb_producto
+            SET flgactivo = 0
+            WHERE id_producto = ?
+              AND flgactivo = 1
+            """;
+    private static final String SQL_ACTUALIZAR = """
+            UPDATE tb_producto
+            SET nombre = ?, flgactivo = ?
+            WHERE id_producto = ?
+            """;
 
     public List<Producto> listar() throws SQLException {
         return consultar(SQL_LISTAR);
@@ -60,6 +71,24 @@ public class ProductoDAO {
             statement.setString(1, nombre.trim());
             statement.setBoolean(2, activo);
             statement.executeUpdate();
+        }
+    }
+
+    public boolean inactivar(int idProducto) throws SQLException {
+        try (Connection connection = Conexion.obtenerConexion();
+             PreparedStatement statement = connection.prepareStatement(SQL_INACTIVAR)) {
+            statement.setInt(1, idProducto);
+            return statement.executeUpdate() == 1;
+        }
+    }
+
+    public boolean actualizar(int idProducto, String nombre, boolean activo) throws SQLException {
+        try (Connection connection = Conexion.obtenerConexion();
+             PreparedStatement statement = connection.prepareStatement(SQL_ACTUALIZAR)) {
+            statement.setString(1, nombre.trim());
+            statement.setBoolean(2, activo);
+            statement.setInt(3, idProducto);
+            return statement.executeUpdate() == 1;
         }
     }
 }

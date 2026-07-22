@@ -22,12 +22,4 @@ public final class Conexion {
         return DriverManager.getConnection(URL, USUARIO, CLAVE);
     }
 
-    public static boolean probarConexion() {
-        try (Connection ignored = obtenerConexion()) {
-            return true;
-        } catch (SQLException e) {
-            System.err.println("Error de conexion: " + e.getMessage());
-            return false;
-        }
-    }
 }

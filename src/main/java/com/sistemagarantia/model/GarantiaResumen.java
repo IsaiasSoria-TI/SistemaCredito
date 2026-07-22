@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 public class GarantiaResumen {
 
     private final int idGarantia;
+    private final int idProducto;
+    private final int idCliente;
     private final LocalDateTime fechaInicio;
     private final String usuario;
     private final String producto;
@@ -20,12 +22,15 @@ public class GarantiaResumen {
     private final String estadoDeposito;
     private final String estadoGarantia;
 
-    public GarantiaResumen(int idGarantia, LocalDateTime fechaInicio, String usuario, String producto,
+    public GarantiaResumen(int idGarantia, int idProducto, int idCliente,
+                           LocalDateTime fechaInicio, String usuario, String producto,
                            String cliente, int cantidadEnvases, int cantidadDevuelta,
                            BigDecimal montoGarantiaUnitario, BigDecimal montoGarantiaTotal,
                            BigDecimal montoDevuelto, LocalDateTime fechaDevolucion, String estadoEnvase,
                            String estadoDeposito, String estadoGarantia) {
         this.idGarantia = idGarantia;
+        this.idProducto = idProducto;
+        this.idCliente = idCliente;
         this.fechaInicio = fechaInicio;
         this.usuario = usuario;
         this.producto = producto;
@@ -43,6 +48,14 @@ public class GarantiaResumen {
 
     public int getIdGarantia() {
         return idGarantia;
+    }
+
+    public int getIdProducto() {
+        return idProducto;
+    }
+
+    public int getIdCliente() {
+        return idCliente;
     }
 
     public LocalDateTime getFechaInicio() {

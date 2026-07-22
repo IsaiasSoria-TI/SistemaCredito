@@ -8,6 +8,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -30,13 +31,15 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.sql.SQLException;
 import java.util.Optional;
 
-public class LoginFrame extends JFrame {
+@SuppressWarnings("serial")
+public final class LoginFrame extends JFrame {
 
     private final JTextField txtUsuario = new JTextField();
     private final JPasswordField txtContrasena = new JPasswordField();
@@ -137,17 +140,27 @@ public class LoginFrame extends JFrame {
     private JPanel crearEspacioImagen() {
         JPanel imagen = new JPanel(new BorderLayout());
         imagen.setOpaque(false);
-        imagen.setPreferredSize(new Dimension(250, 140));
-        imagen.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(85, 99, 114)),
-                new EmptyBorder(14, 14, 14, 14)
-        ));
+        imagen.setPreferredSize(new Dimension(280, 230));
+        imagen.setBorder(new EmptyBorder(4, 4, 4, 4));
 
-        JLabel placeholder = new JLabel("Imagen");
-        placeholder.setForeground(new Color(176, 186, 197));
-        placeholder.setHorizontalAlignment(SwingConstants.CENTER);
-        placeholder.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        imagen.add(placeholder, BorderLayout.CENTER);
+        java.net.URL recurso = LoginFrame.class.getResource("/images/CeroDietasLogo.png");
+        JLabel logo = new JLabel();
+        logo.setHorizontalAlignment(SwingConstants.CENTER);
+        if (recurso != null) {
+            ImageIcon original = new ImageIcon(recurso);
+            double escala = Math.min(
+                    260.0 / original.getIconWidth(),
+                    215.0 / original.getIconHeight()
+            );
+            int ancho = Math.max(1, (int) Math.round(original.getIconWidth() * escala));
+            int alto = Math.max(1, (int) Math.round(original.getIconHeight() * escala));
+            Image ajustada = original.getImage().getScaledInstance(ancho, alto, Image.SCALE_SMOOTH);
+            logo.setIcon(new ImageIcon(ajustada));
+        } else {
+            logo.setText("Logo no disponible");
+            logo.setForeground(new Color(176, 186, 197));
+        }
+        imagen.add(logo, BorderLayout.CENTER);
 
         return imagen;
     }

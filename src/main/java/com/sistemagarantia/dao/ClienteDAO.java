@@ -40,6 +40,21 @@ public class ClienteDAO {
                 (nombre, apellido_paterno, apellido_materno, telefono, flgactivo)
             VALUES (?, ?, ?, ?, ?)
             """;
+    private static final String SQL_INACTIVAR = """
+            UPDATE tb_cliente
+            SET flgactivo = 0
+            WHERE id_cliente = ?
+              AND flgactivo = 1
+            """;
+    private static final String SQL_ACTUALIZAR = """
+            UPDATE tb_cliente
+            SET nombre = ?,
+                apellido_paterno = ?,
+                apellido_materno = ?,
+                telefono = ?,
+                flgactivo = ?
+            WHERE id_cliente = ?
+            """;
 
     public List<Cliente> listar() throws SQLException {
         return consultar(SQL_LISTAR);
@@ -80,6 +95,29 @@ public class ClienteDAO {
             statement.setString(4, comoNull(telefono));
             statement.setBoolean(5, activo);
             statement.executeUpdate();
+        }
+    }
+
+    public boolean inactivar(int idCliente) throws SQLException {
+        try (Connection connection = Conexion.obtenerConexion();
+             PreparedStatement statement = connection.prepareStatement(SQL_INACTIVAR)) {
+            statement.setInt(1, idCliente);
+            return statement.executeUpdate() == 1;
+        }
+    }
+
+    public boolean actualizar(int idCliente, String nombre, String apellidoPaterno,
+                              String apellidoMaterno, String telefono, boolean activo)
+            throws SQLException {
+        try (Connection connection = Conexion.obtenerConexion();
+             PreparedStatement statement = connection.prepareStatement(SQL_ACTUALIZAR)) {
+            statement.setString(1, nombre.trim());
+            statement.setString(2, comoNull(apellidoPaterno));
+            statement.setString(3, comoNull(apellidoMaterno));
+            statement.setString(4, comoNull(telefono));
+            statement.setBoolean(5, activo);
+            statement.setInt(6, idCliente);
+            return statement.executeUpdate() == 1;
         }
     }
 

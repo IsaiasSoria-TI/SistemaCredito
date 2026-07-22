@@ -18,6 +18,8 @@ public class GarantiaDAO {
     private static final String SQL_LISTAR = """
             SELECT
                 g.id_garantia,
+                g.id_producto,
+                g.id_cliente,
                 g.fecha_inicio,
                 TRIM(CONCAT_WS(' ', per.nombre, per.apellido_paterno, per.apellido_materno)) AS usuario,
                 p.nombre AS producto,
@@ -43,6 +45,25 @@ public class GarantiaDAO {
                 (id_usuario, id_producto, id_cliente, cantidad_envases,
                  monto_garantia_unitario, monto_garantia_total)
             VALUES (?, ?, ?, ?, ?, ?)
+            """;
+    private static final String SQL_ACTUALIZAR = """
+            UPDATE tb_garantia
+            SET id_producto = ?,
+                id_cliente = ?,
+                cantidad_envases = ?,
+                monto_garantia_unitario = ?,
+                monto_garantia_total = ?,
+                estado_envase = ?,
+                estado_deposito = ?,
+                estado_garantia = ?,
+                fecha_devolucion = CASE
+                    WHEN ? = 'CERRADA' THEN COALESCE(fecha_devolucion, CURRENT_TIMESTAMP)
+                    ELSE NULL
+                END
+            WHERE id_garantia = ?
+              AND estado_garantia = ?
+              AND cantidad_devuelta = ?
+              AND monto_devuelto = ?
             """;
     private static final String SQL_OBTENER_PARA_DEVOLUCION = """
             SELECT cantidad_envases, cantidad_devuelta, monto_garantia_total,
@@ -78,6 +99,8 @@ public class GarantiaDAO {
                 Timestamp fechaDevolucion = resultSet.getTimestamp("fecha_devolucion");
                 garantias.add(new GarantiaResumen(
                         resultSet.getInt("id_garantia"),
+                        resultSet.getInt("id_producto"),
+                        resultSet.getInt("id_cliente"),
                         resultSet.getTimestamp("fecha_inicio").toLocalDateTime(),
                         resultSet.getString("usuario"),
                         resultSet.getString("producto"),
@@ -113,6 +136,42 @@ public class GarantiaDAO {
             statement.setBigDecimal(5, montoGarantiaUnitario);
             statement.setBigDecimal(6, montoTotal);
             statement.executeUpdate();
+        }
+    }
+
+    public boolean actualizar(int idGarantia, int idProducto, int idCliente,
+                              int cantidadEnvases, BigDecimal montoGarantiaUnitario,
+                              int cantidadDevuelta, BigDecimal montoDevuelto,
+                              String estadoOriginal) throws SQLException {
+        BigDecimal montoTotal = montoGarantiaUnitario
+                .multiply(BigDecimal.valueOf(cantidadEnvases))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        String estadoEnvase = cantidadDevuelta == 0
+                ? "PENDIENTE"
+                : cantidadDevuelta == cantidadEnvases ? "DEVUELTO" : "PARCIAL";
+        String estadoDeposito = montoDevuelto.compareTo(BigDecimal.ZERO) == 0
+                ? "RETENIDO"
+                : montoDevuelto.compareTo(montoTotal) == 0 ? "DEVUELTO" : "PARCIAL";
+        String estadoGarantia = cantidadDevuelta == cantidadEnvases
+                && montoDevuelto.compareTo(montoTotal) == 0 ? "CERRADA" : "ABIERTA";
+
+        try (Connection connection = Conexion.obtenerConexion();
+             PreparedStatement statement = connection.prepareStatement(SQL_ACTUALIZAR)) {
+            statement.setInt(1, idProducto);
+            statement.setInt(2, idCliente);
+            statement.setInt(3, cantidadEnvases);
+            statement.setBigDecimal(4, montoGarantiaUnitario);
+            statement.setBigDecimal(5, montoTotal);
+            statement.setString(6, estadoEnvase);
+            statement.setString(7, estadoDeposito);
+            statement.setString(8, estadoGarantia);
+            statement.setString(9, estadoGarantia);
+            statement.setInt(10, idGarantia);
+            statement.setString(11, estadoOriginal);
+            statement.setInt(12, cantidadDevuelta);
+            statement.setBigDecimal(13, montoDevuelto);
+            return statement.executeUpdate() == 1;
         }
     }
 
