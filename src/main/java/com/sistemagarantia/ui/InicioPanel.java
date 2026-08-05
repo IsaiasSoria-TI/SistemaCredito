@@ -49,7 +49,7 @@ public final class InicioPanel extends JPanel {
     private final GarantiaDAO garantiaDAO = new GarantiaDAO();
     private final ProductoDAO productoDAO = new ProductoDAO();
     private final JLabel lblEnvasesPendientes = new JLabel("0");
-    private final JLabel lblClientesActivos = new JLabel("0");
+    private final JLabel lblTotalGarantias = new JLabel("S/ 0.00");
     private final JLabel lblProductosActivos = new JLabel("0");
     private final JTable tabla;
     private final BuscadorTabla<GarantiaResumen> buscador;
@@ -87,8 +87,8 @@ public final class InicioPanel extends JPanel {
     private DefaultTableModel crearModelo() {
         String[] columnas = {
                 "ID", "Fecha de inicio", "Usuario", "Producto", "Cliente", "Cantidad",
-                "Garantia por envase", "Fecha de devolucion", "Estado envase",
-                "Estado deposito", "Estado garantia", "Cantidad devuelta", "Monto total",
+                "Garantia por envase", "Fecha de devolucion", "Estado deposito",
+                "Estado garantia", "Cantidad devuelta", "Monto total",
                 "Monto devuelto"
         };
         return new DefaultTableModel(columnas, 0) {
@@ -109,7 +109,6 @@ public final class InicioPanel extends JPanel {
                 garantia.getCantidadEnvases(),
                 String.format(Locale.US, "S/ %.2f", garantia.getMontoGarantiaUnitario()),
                 formatearFecha(garantia.getFechaDevolucion()),
-                garantia.getEstadoEnvase(),
                 garantia.getEstadoDeposito(),
                 garantia.getEstadoGarantia(),
                 garantia.getCantidadDevuelta(),
@@ -130,12 +129,12 @@ public final class InicioPanel extends JPanel {
                 (DefaultTableCellRenderer) tabla.getTableHeader().getDefaultRenderer();
         encabezadoCentrado.setHorizontalAlignment(SwingConstants.CENTER);
 
-        tabla.getColumnModel().removeColumn(tabla.getColumnModel().getColumn(13));
         tabla.getColumnModel().removeColumn(tabla.getColumnModel().getColumn(12));
         tabla.getColumnModel().removeColumn(tabla.getColumnModel().getColumn(11));
+        tabla.getColumnModel().removeColumn(tabla.getColumnModel().getColumn(10));
         tabla.getColumnModel().removeColumn(tabla.getColumnModel().getColumn(0));
 
-        int[] anchos = {145, 190, 190, 190, 80, 145, 155, 120, 125, 120};
+        int[] anchos = {145, 190, 190, 190, 80, 145, 155, 125, 120};
         for (int i = 0; i < anchos.length; i++) {
             tabla.getColumnModel().getColumn(i).setPreferredWidth(anchos[i]);
         }
@@ -146,7 +145,7 @@ public final class InicioPanel extends JPanel {
         cards.setOpaque(false);
         cards.setPreferredSize(new Dimension(0, 92));
         cards.add(crearIndicador("Envases pendientes", lblEnvasesPendientes));
-        cards.add(crearIndicador("Clientes activos", lblClientesActivos));
+        cards.add(crearIndicador("Garantías pendientes", lblTotalGarantias));
         cards.add(crearIndicador("Productos activos", lblProductosActivos));
         return cards;
     }
@@ -189,20 +188,17 @@ public final class InicioPanel extends JPanel {
         encabezado.add(titulo, BorderLayout.WEST);
         encabezado.add(buscador.getControles(), BorderLayout.SOUTH);
 
-        JButton agregar = crearBoton("Agregar movimiento");
-        agregar.addActionListener(event -> mostrarNuevoMovimiento());
+        JButton detalles = crearBoton("Detalles");
+        detalles.addActionListener(event -> mostrarDetallesSeleccionada());
         JButton editar = crearBoton("Editar");
         editar.addActionListener(event -> editarSeleccionada());
-        JButton devolver = crearBoton("Registrar devolución");
-        devolver.addActionListener(event -> registrarDevolucionSeleccionada());
         JButton actualizar = crearBoton("Actualizar");
         actualizar.addActionListener(event -> recargarTodo());
 
         JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         acciones.setOpaque(false);
-        acciones.add(agregar);
+        acciones.add(detalles);
         acciones.add(editar);
-        acciones.add(devolver);
         acciones.add(actualizar);
         encabezado.add(acciones, BorderLayout.EAST);
         return encabezado;
@@ -224,134 +220,12 @@ public final class InicioPanel extends JPanel {
         }
     }
 
-    private void mostrarNuevoMovimiento() {
-        Producto[] productos;
-        Cliente[] clientes;
-        try {
-            productos = productoDAO.listarActivos().toArray(Producto[]::new);
-            clientes = clienteDAO.listarActivos().toArray(Cliente[]::new);
-        } catch (SQLException e) {
-            mostrarError("No se pudieron cargar los datos del movimiento.", e);
+    private void mostrarDetallesSeleccionada() {
+        GarantiaResumen garantia = obtenerSeleccionada("ver sus detalles");
+        if (garantia == null) {
             return;
         }
-
-        if (productos.length == 0 || clientes.length == 0) {
-            SwingUi.mostrarValidacion(
-                    this,
-                    productos.length == 0
-                            ? "Debe existir al menos un producto activo."
-                            : "Debe existir al menos un cliente activo."
-            );
-            return;
-        }
-
-        DefaultComboBoxModel<Producto> modeloProductos = new DefaultComboBoxModel<>(productos);
-        JComboBox<Producto> producto = new JComboBox<>(modeloProductos);
-        DefaultComboBoxModel<Cliente> modeloClientes = new DefaultComboBoxModel<>(clientes);
-        JComboBox<Cliente> cliente = new JComboBox<>(modeloClientes);
-        producto.setMaximumRowCount(10);
-        cliente.setMaximumRowCount(10);
-        SwingUi.configurarAutocompletado(producto, productos, modeloProductos);
-        SwingUi.configurarAutocompletado(cliente, clientes, modeloClientes);
-
-        JTextField cantidad = new JTextField("1", 12);
-        SwingUi.aplicarFiltroEnteros(cantidad);
-        JTextField montoUnitario = new JTextField(12);
-
-        JPanel formulario = new JPanel(new GridBagLayout());
-        SwingUi.agregarCampoFormulario(formulario, 0, "Producto", producto);
-        SwingUi.agregarCampoFormulario(formulario, 1, "Cliente", cliente);
-        SwingUi.agregarCampoFormulario(formulario, 2, "Cantidad de envases", cantidad);
-        SwingUi.agregarCampoFormulario(formulario, 3, "Garantía por envase (S/)", montoUnitario);
-
-        while (true) {
-            int opcion = JOptionPane.showConfirmDialog(
-                    this,
-                    formulario,
-                    "Agregar movimiento",
-                    JOptionPane.OK_CANCEL_OPTION,
-                    JOptionPane.PLAIN_MESSAGE
-            );
-            if (opcion != JOptionPane.OK_OPTION) {
-                return;
-            }
-
-            Producto productoSeleccionado = producto.getSelectedItem() instanceof Producto valor
-                    ? valor : null;
-            Cliente clienteSeleccionado = cliente.getSelectedItem() instanceof Cliente valor
-                    ? valor : null;
-            if (productoSeleccionado == null || clienteSeleccionado == null) {
-                SwingUi.mostrarValidacion(this, "Seleccione un producto y un cliente válidos.");
-                continue;
-            }
-
-            Integer cantidadIngresada = leerCantidad(cantidad, 1, 999999);
-            if (cantidadIngresada == null) {
-                continue;
-            }
-            BigDecimal garantia = leerMontoPositivo(montoUnitario, "monto de garantía");
-            if (garantia == null) {
-                continue;
-            }
-
-            BigDecimal total = garantia.multiply(BigDecimal.valueOf(cantidadIngresada));
-            if (garantia.compareTo(new BigDecimal("999999.99")) > 0
-                    || total.compareTo(new BigDecimal("999999.99")) > 0) {
-                SwingUi.mostrarValidacion(this, "El monto total de la garantía es demasiado grande.");
-                continue;
-            }
-
-            try {
-                garantiaDAO.insertar(
-                        usuario.getIdUsuario(),
-                        productoSeleccionado.getIdProducto(),
-                        clienteSeleccionado.getIdCliente(),
-                        cantidadIngresada,
-                        garantia
-                );
-                recargarTodo();
-                JOptionPane.showMessageDialog(this, "Movimiento agregado correctamente.");
-            } catch (SQLException e) {
-                mostrarError("No se pudo agregar el movimiento.", e);
-            }
-            return;
-        }
-    }
-
-    private Integer leerCantidad(JTextField campo, int minimo, int maximo) {
-        int valor;
-        try {
-            valor = Integer.parseInt(campo.getText().trim());
-        } catch (NumberFormatException e) {
-            SwingUi.mostrarValidacion(this, "Ingrese una cantidad válida de envases.");
-            return null;
-        }
-        if (valor < minimo || valor > maximo) {
-            SwingUi.mostrarValidacion(
-                    this,
-                    "La cantidad debe estar entre " + minimo + " y " + maximo + "."
-            );
-            return null;
-        }
-        return valor;
-    }
-
-    private BigDecimal leerMontoPositivo(JTextField campo, String descripcion) {
-        BigDecimal valor;
-        try {
-            valor = new BigDecimal(campo.getText().trim().replace(',', '.'));
-        } catch (NumberFormatException e) {
-            SwingUi.mostrarValidacion(this, "Ingrese un " + descripcion + " válido.");
-            return null;
-        }
-        if (valor.scale() > 2 || valor.compareTo(BigDecimal.ZERO) <= 0) {
-            SwingUi.mostrarValidacion(
-                    this,
-                    "El " + descripcion + " debe ser mayor que cero y admitir máximo 2 decimales."
-            );
-            return null;
-        }
-        return valor.setScale(2);
+        GarantiaDetalleDialog.mostrar(this, garantia);
     }
 
     private void editarSeleccionada() {
@@ -434,7 +308,8 @@ public final class InicioPanel extends JPanel {
                 continue;
             }
 
-            Integer cantidadIngresada = leerCantidad(
+            Integer cantidadIngresada = GarantiaFormSupport.leerCantidad(
+                    this,
                     cantidad,
                     Math.max(1, garantiaActual.getCantidadDevuelta()),
                     999999
@@ -442,15 +317,17 @@ public final class InicioPanel extends JPanel {
             if (cantidadIngresada == null) {
                 continue;
             }
-            BigDecimal montoIngresado = leerMontoPositivo(montoUnitario, "monto de garantía");
+            BigDecimal montoIngresado = GarantiaFormSupport.leerMontoPositivo(
+                    this,
+                    montoUnitario,
+                    "monto de garantía"
+            );
             if (montoIngresado == null) {
                 continue;
             }
 
             BigDecimal montoTotal = montoIngresado.multiply(BigDecimal.valueOf(cantidadIngresada));
-            if (montoIngresado.compareTo(new BigDecimal("999999.99")) > 0
-                    || montoTotal.compareTo(new BigDecimal("999999.99")) > 0) {
-                SwingUi.mostrarValidacion(this, "El monto total de la garantía es demasiado grande.");
+            if (!GarantiaFormSupport.validarMontoTotal(this, montoIngresado, cantidadIngresada)) {
                 continue;
             }
             if (montoTotal.compareTo(garantiaActual.getMontoDevuelto()) < 0) {
@@ -504,111 +381,26 @@ public final class InicioPanel extends JPanel {
         }
     }
 
-    private void registrarDevolucionSeleccionada() {
-        GarantiaResumen garantia = obtenerSeleccionada("registrar la devolución");
-        if (garantia == null) {
-            return;
-        }
-        if (!"ABIERTA".equals(garantia.getEstadoGarantia())) {
-            SwingUi.mostrarValidacion(this, "La garantía seleccionada ya no está abierta.");
-            return;
-        }
-
-        int cantidadPendiente = garantia.getCantidadEnvases() - garantia.getCantidadDevuelta();
-        BigDecimal montoPendiente = garantia.getMontoGarantiaTotal().subtract(garantia.getMontoDevuelto());
-        JTextField cantidad = new JTextField(cantidadPendiente > 0 ? "1" : "0", 12);
-        SwingUi.aplicarFiltroEnteros(cantidad);
-        JTextField monto = new JTextField(12);
-
-        JPanel formulario = new JPanel(new GridBagLayout());
-        SwingUi.agregarCampoFormulario(formulario, 0, "Producto", new JLabel(garantia.getProducto()));
-        SwingUi.agregarCampoFormulario(formulario, 1, "Cliente", new JLabel(garantia.getCliente()));
-        SwingUi.agregarCampoFormulario(formulario, 2, "Envases pendientes",
-                new JLabel(String.valueOf(cantidadPendiente)));
-        SwingUi.agregarCampoFormulario(formulario, 3, "Saldo pendiente",
-                new JLabel(String.format(Locale.US, "S/ %.2f", montoPendiente)));
-        SwingUi.agregarCampoFormulario(formulario, 4, "Envases devueltos ahora", cantidad);
-        SwingUi.agregarCampoFormulario(formulario, 5, "Dinero entregado ahora (S/)", monto);
-
-        while (true) {
-            int opcion = JOptionPane.showConfirmDialog(
-                    this,
-                    formulario,
-                    "Registrar devolución",
-                    JOptionPane.OK_CANCEL_OPTION,
-                    JOptionPane.PLAIN_MESSAGE
-            );
-            if (opcion != JOptionPane.OK_OPTION) {
-                return;
-            }
-
-            Integer cantidadIngresada = leerCantidad(cantidad, 0, cantidadPendiente);
-            if (cantidadIngresada == null) {
-                continue;
-            }
-
-            BigDecimal montoIngresado;
-            try {
-                montoIngresado = new BigDecimal(monto.getText().trim().replace(',', '.'));
-            } catch (NumberFormatException e) {
-                SwingUi.mostrarValidacion(this, "Ingrese un monto válido para entregar al cliente.");
-                continue;
-            }
-            if (montoIngresado.scale() > 2) {
-                SwingUi.mostrarValidacion(this, "El monto admite como máximo 2 decimales.");
-                continue;
-            }
-            montoIngresado = montoIngresado.setScale(2);
-            if (montoIngresado.compareTo(BigDecimal.ZERO) < 0
-                    || montoIngresado.compareTo(montoPendiente) > 0) {
-                SwingUi.mostrarValidacion(
-                        this,
-                        "El monto debe estar entre S/ 0.00 y "
-                                + String.format(Locale.US, "S/ %.2f", montoPendiente) + "."
-                );
-                continue;
-            }
-            if (cantidadIngresada == 0 && montoIngresado.compareTo(BigDecimal.ZERO) == 0) {
-                SwingUi.mostrarValidacion(
-                        this,
-                        "Debe registrar al menos un envase o un monto devuelto."
-                );
-                continue;
-            }
-
-            try {
-                boolean cerrada = garantiaDAO.registrarDevolucion(
-                        garantia.getIdGarantia(),
-                        usuario.getIdUsuario(),
-                        cantidadIngresada,
-                        montoIngresado
-                );
-                recargarTodo();
-                JOptionPane.showMessageDialog(
-                        this,
-                        cerrada
-                                ? "Devolución registrada. La garantía quedó cerrada."
-                                : "Devolución parcial registrada. La garantía continúa abierta."
-                );
-            } catch (SQLException e) {
-                mostrarError("No se pudo registrar la devolución.", e);
-            }
-            return;
-        }
-    }
-
     public void recargarIndicadores() {
         try {
             ResumenDashboard resumen = dashboardDAO.obtenerResumen();
             lblEnvasesPendientes.setText(String.valueOf(resumen.getEnvasesPendientes()));
-            lblClientesActivos.setText(String.valueOf(resumen.getClientesActivos()));
+            lblTotalGarantias.setText(String.format(
+                    Locale.US,
+                    "S/ %,.2f",
+                    resumen.getTotalGarantias()
+            ));
             lblProductosActivos.setText(String.valueOf(resumen.getProductosActivos()));
         } catch (SQLException e) {
             lblEnvasesPendientes.setText("-");
-            lblClientesActivos.setText("-");
+            lblTotalGarantias.setText("-");
             lblProductosActivos.setText("-");
             mostrarError("No se pudieron cargar los indicadores.", e);
         }
+    }
+
+    public void recargarDatos() {
+        recargarTodo();
     }
 
     private void recargarTodo() {

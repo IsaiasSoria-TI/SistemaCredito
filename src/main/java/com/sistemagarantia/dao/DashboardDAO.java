@@ -3,6 +3,7 @@ package com.sistemagarantia.dao;
 import com.sistemagarantia.database.Conexion;
 import com.sistemagarantia.model.ResumenDashboard;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,10 +19,10 @@ public class DashboardDAO {
                     WHERE g.estado_garantia = 'ABIERTA'
                 ) AS envases_pendientes,
                 (
-                    SELECT COUNT(*)
-                    FROM tb_cliente c
-                    WHERE c.flgactivo = 1
-                ) AS clientes_activos,
+                    SELECT COALESCE(SUM(g.monto_garantia_total - g.monto_devuelto), 0.00)
+                    FROM tb_garantia g
+                    WHERE g.estado_garantia <> 'ANULADA'
+                ) AS total_garantias,
                 (
                     SELECT COUNT(*)
                     FROM tb_producto p
@@ -34,11 +35,11 @@ public class DashboardDAO {
              PreparedStatement statement = connection.prepareStatement(SQL_RESUMEN);
              ResultSet resultSet = statement.executeQuery()) {
             if (!resultSet.next()) {
-                return new ResumenDashboard(0, 0, 0);
+                return new ResumenDashboard(0, BigDecimal.ZERO, 0);
             }
             return new ResumenDashboard(
                     resultSet.getInt("envases_pendientes"),
-                    resultSet.getInt("clientes_activos"),
+                    resultSet.getBigDecimal("total_garantias"),
                     resultSet.getInt("productos_activos")
             );
         }

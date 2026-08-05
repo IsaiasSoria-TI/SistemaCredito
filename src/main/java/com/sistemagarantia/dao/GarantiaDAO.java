@@ -32,7 +32,27 @@ public class GarantiaDAO {
                 g.fecha_devolucion,
                 g.estado_envase,
                 g.estado_deposito,
-                g.estado_garantia
+                g.estado_garantia,
+                COALESCE(g.observacion, '') AS observacion,
+                CASE
+                    WHEN g.estado_garantia = 'CERRADA' THEN (
+                        SELECT TRIM(CONCAT_WS(
+                            ' ', per_cierre.nombre,
+                            per_cierre.apellido_paterno,
+                            per_cierre.apellido_materno
+                        ))
+                        FROM tb_devolucion_garantia dg_cierre
+                        INNER JOIN tb_usuario u_cierre
+                            ON u_cierre.id_usuario = dg_cierre.id_usuario
+                        INNER JOIN tb_persona per_cierre
+                            ON per_cierre.id_persona = u_cierre.id_persona
+                        WHERE dg_cierre.id_garantia = g.id_garantia
+                        ORDER BY dg_cierre.fecha_devolucion DESC,
+                                 dg_cierre.id_devolucion_garantia DESC
+                        LIMIT 1
+                    )
+                    ELSE NULL
+                END AS usuario_cierre
             FROM tb_garantia g
             INNER JOIN tb_usuario u ON u.id_usuario = g.id_usuario
             INNER JOIN tb_persona per ON per.id_persona = u.id_persona
@@ -113,7 +133,9 @@ public class GarantiaDAO {
                         fechaDevolucion == null ? null : fechaDevolucion.toLocalDateTime(),
                         resultSet.getString("estado_envase"),
                         resultSet.getString("estado_deposito"),
-                        resultSet.getString("estado_garantia")
+                        resultSet.getString("estado_garantia"),
+                        resultSet.getString("observacion"),
+                        resultSet.getString("usuario_cierre")
                 ));
             }
         }

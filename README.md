@@ -30,7 +30,8 @@ El sistema utiliza una interfaz de escritorio desarrollada con Java Swing, una a
 ## Funcionalidades
 
 - Autenticación de usuarios activos.
-- Dashboard con indicadores de envases pendientes, clientes activos y productos activos.
+- Dashboard con indicadores de envases pendientes, saldo de garantías por devolver y productos activos.
+- Módulo independiente para crear garantías y consultar el detalle completo de cada movimiento.
 - Registro y edición de clientes.
 - Registro y edición de productos.
 - Desactivación lógica de clientes y productos para conservar su historial.

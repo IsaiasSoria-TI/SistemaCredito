@@ -11,6 +11,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
@@ -35,10 +37,9 @@ public final class ProductosPanel extends JPanel {
         DefaultTableModel modelo = crearModelo();
         PaginadorTabla<Producto> paginador = new PaginadorTabla<>(modelo, this::convertirFila);
         buscador = new BuscadorTabla<>(
-                new String[]{"ID", "Nombre", "Estado"},
+                new String[]{"Nombre", "Estado"},
                 paginador,
                 (producto, campo, texto) -> switch (campo) {
-                    case "ID" -> SwingUi.contieneBusqueda(producto.getIdProducto(), texto);
                     case "Nombre" -> SwingUi.contieneBusqueda(producto.getNombre(), texto);
                     case "Estado" -> SwingUi.coincideEstadoActivo(producto.isActivo(), texto);
                     default -> true;
@@ -72,6 +73,14 @@ public final class ProductosPanel extends JPanel {
 
     private void configurarTabla() {
         SwingUi.configurarTabla(tabla);
+
+        DefaultTableCellRenderer celdasCentradas = new DefaultTableCellRenderer();
+        celdasCentradas.setHorizontalAlignment(SwingConstants.CENTER);
+        tabla.setDefaultRenderer(Object.class, celdasCentradas);
+        DefaultTableCellRenderer encabezadoCentrado =
+                (DefaultTableCellRenderer) tabla.getTableHeader().getDefaultRenderer();
+        encabezadoCentrado.setHorizontalAlignment(SwingConstants.CENTER);
+
         tabla.getColumnModel().getColumn(0).setPreferredWidth(80);
         tabla.getColumnModel().getColumn(1).setPreferredWidth(520);
         tabla.getColumnModel().getColumn(2).setPreferredWidth(130);

@@ -8,12 +8,10 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.Icon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -22,10 +20,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Insets;
-import java.awt.RenderingHints;
 
 @SuppressWarnings("serial")
 public final class DashboardFrame extends JFrame {
@@ -34,6 +29,7 @@ public final class DashboardFrame extends JFrame {
 
     private final Usuario usuario;
     private final InicioPanel inicioPanel;
+    private final CrearGarantiaPanel crearGarantiaPanel;
     private final ConfiguracionPanel miPerfilPanel;
     private final AdministracionPanel administracionPanel;
     private final JPanel sidebar = new JPanel(new BorderLayout());
@@ -47,6 +43,7 @@ public final class DashboardFrame extends JFrame {
     public DashboardFrame(Usuario usuario) {
         this.usuario = usuario;
         inicioPanel = new InicioPanel(usuario);
+        crearGarantiaPanel = new CrearGarantiaPanel(usuario, inicioPanel::recargarDatos);
         miPerfilPanel = new ConfiguracionPanel(usuario, this::actualizarCabeceraPerfil);
         administracionPanel = usuario.isAdministrador()
                 ? new AdministracionPanel(usuario, this::actualizarCabeceraPerfil)
@@ -76,7 +73,7 @@ public final class DashboardFrame extends JFrame {
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         top.setOpaque(false);
-        lblAvatar.setIcon(crearIconoUsuario(24));
+        lblAvatar.setIcon(AppIcons.crear(AppIcons.Tipo.PERFIL, 24, Color.WHITE));
         lblAvatar.setOpaque(true);
         lblAvatar.setBackground(colorPerfil(usuario.getColorPerfil()));
         lblAvatar.setHorizontalAlignment(SwingConstants.CENTER);
@@ -94,27 +91,30 @@ public final class DashboardFrame extends JFrame {
         menuPanel.setOpaque(false);
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
         menuPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
-        agregarItemMenu("Inicio", "inicio");
-        agregarItemMenu("Clientes", "clientes");
-        agregarItemMenu("Productos", "productos");
-        agregarItemMenu("Mi Perfil", "miPerfil");
+        agregarItemMenu("Inicio", "inicio", AppIcons.Tipo.INICIO);
+        agregarItemMenu("Crear Garantía", "crearGarantia", AppIcons.Tipo.CREAR_GARANTIA);
+        agregarItemMenu("Clientes", "clientes", AppIcons.Tipo.CLIENTES);
+        agregarItemMenu("Productos", "productos", AppIcons.Tipo.PRODUCTOS);
+        agregarItemMenu("Mi Perfil", "miPerfil", AppIcons.Tipo.PERFIL);
         if (usuario.isAdministrador()) {
-            agregarItemMenu("Configuración", "configuracion");
+            agregarItemMenu("Configuración", "configuracion", AppIcons.Tipo.CONFIGURACION);
         }
         menuPanel.add(Box.createVerticalGlue());
         sidebar.add(menuPanel, BorderLayout.CENTER);
     }
 
-    private void agregarItemMenu(String texto, String cardName) {
+    private void agregarItemMenu(String texto, String cardName, AppIcons.Tipo tipoIcono) {
         if (menuPanel.getComponentCount() > 0) {
             menuPanel.add(Box.createVerticalStrut(6));
         }
-        JButton boton = crearBotonSidebar(texto);
+        JButton boton = crearBotonSidebar(texto, tipoIcono);
         boton.addActionListener(event -> {
             cardLayout.show(content, cardName);
             lblTituloPagina.setText(texto);
             if ("inicio".equals(cardName)) {
-                inicioPanel.recargarIndicadores();
+                inicioPanel.recargarDatos();
+            } else if ("crearGarantia".equals(cardName)) {
+                crearGarantiaPanel.recargarDatos();
             } else if ("configuracion".equals(cardName) && administracionPanel != null) {
                 administracionPanel.recargarDatos();
             }
@@ -130,6 +130,7 @@ public final class DashboardFrame extends JFrame {
         content.setOpaque(false);
         content.setBorder(new EmptyBorder(16, 18, 18, 18));
         content.add(inicioPanel, "inicio");
+        content.add(crearGarantiaPanel, "crearGarantia");
         content.add(new ClientesPanel(inicioPanel::recargarIndicadores), "clientes");
         content.add(new ProductosPanel(inicioPanel::recargarIndicadores), "productos");
         content.add(miPerfilPanel, "miPerfil");
@@ -152,7 +153,9 @@ public final class DashboardFrame extends JFrame {
         lblTituloPagina.setForeground(AppColors.TEXT);
         header.add(lblTituloPagina, BorderLayout.WEST);
 
-        JButton cerrarSesion = new JButton(crearIconoCerrarSesion(18));
+        JButton cerrarSesion = new JButton(
+                AppIcons.crear(AppIcons.Tipo.SALIR, 18, AppColors.TEXT_MUTED)
+        );
         cerrarSesion.setToolTipText("Cerrar sesión");
         cerrarSesion.getAccessibleContext().setAccessibleName("Cerrar sesión");
         cerrarSesion.setFocusPainted(false);
@@ -183,8 +186,11 @@ public final class DashboardFrame extends JFrame {
         }
     }
 
-    private JButton crearBotonSidebar(String texto) {
-        JButton button = new JButton(texto);
+    private JButton crearBotonSidebar(String texto, AppIcons.Tipo tipoIcono) {
+        JButton button = new JButton(
+                texto,
+                AppIcons.crear(tipoIcono, 18, Color.WHITE)
+        );
         button.setToolTipText(texto);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
@@ -198,60 +204,8 @@ public final class DashboardFrame extends JFrame {
         button.setMinimumSize(new Dimension(0, 32));
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
         button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setIconTextGap(10);
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6");
         return button;
-    }
-
-    private Icon crearIconoUsuario(int size) {
-        return new Icon() {
-            @Override
-            public int getIconWidth() {
-                return size;
-            }
-
-            @Override
-            public int getIconHeight() {
-                return size;
-            }
-
-            @Override
-            public void paintIcon(Component component, Graphics graphics, int x, int y) {
-                Graphics2D g2 = (Graphics2D) graphics.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillOval(x + 8, y + 3, 8, 8);
-                g2.fillRoundRect(x + 4, y + 13, 16, 9, 8, 8);
-                g2.dispose();
-            }
-        };
-    }
-
-    private Icon crearIconoCerrarSesion(int size) {
-        return new Icon() {
-            @Override
-            public int getIconWidth() {
-                return size;
-            }
-
-            @Override
-            public int getIconHeight() {
-                return size;
-            }
-
-            @Override
-            public void paintIcon(Component component, Graphics graphics, int x, int y) {
-                Graphics2D g2 = (Graphics2D) graphics.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(component.getForeground());
-                g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g2.drawLine(x + 2, y + 2, x + 2, y + size - 2);
-                g2.drawLine(x + 2, y + 2, x + 9, y + 2);
-                g2.drawLine(x + 2, y + size - 2, x + 9, y + size - 2);
-                g2.drawLine(x + 8, y + size / 2, x + size - 2, y + size / 2);
-                g2.drawLine(x + size - 6, y + size / 2 - 4, x + size - 2, y + size / 2);
-                g2.drawLine(x + size - 6, y + size / 2 + 4, x + size - 2, y + size / 2);
-                g2.dispose();
-            }
-        };
     }
 }

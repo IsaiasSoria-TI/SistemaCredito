@@ -21,13 +21,16 @@ public class GarantiaResumen {
     private final String estadoEnvase;
     private final String estadoDeposito;
     private final String estadoGarantia;
+    private final String observacion;
+    private final String usuarioCierre;
 
     public GarantiaResumen(int idGarantia, int idProducto, int idCliente,
                            LocalDateTime fechaInicio, String usuario, String producto,
                            String cliente, int cantidadEnvases, int cantidadDevuelta,
                            BigDecimal montoGarantiaUnitario, BigDecimal montoGarantiaTotal,
                            BigDecimal montoDevuelto, LocalDateTime fechaDevolucion, String estadoEnvase,
-                           String estadoDeposito, String estadoGarantia) {
+                           String estadoDeposito, String estadoGarantia, String observacion,
+                           String usuarioCierre) {
         this.idGarantia = idGarantia;
         this.idProducto = idProducto;
         this.idCliente = idCliente;
@@ -44,6 +47,8 @@ public class GarantiaResumen {
         this.estadoEnvase = estadoEnvase;
         this.estadoDeposito = estadoDeposito;
         this.estadoGarantia = estadoGarantia;
+        this.observacion = observacion;
+        this.usuarioCierre = usuarioCierre;
     }
 
     public int getIdGarantia() {
@@ -108,5 +113,13 @@ public class GarantiaResumen {
 
     public String getEstadoGarantia() {
         return estadoGarantia;
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public String getUsuarioCierre() {
+        return usuarioCierre;
     }
 }

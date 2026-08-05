@@ -1,14 +1,16 @@
 package com.sistemagarantia.model;
 
+import java.math.BigDecimal;
+
 public class ResumenDashboard {
 
     private final int envasesPendientes;
-    private final int clientesActivos;
+    private final BigDecimal totalGarantias;
     private final int productosActivos;
 
-    public ResumenDashboard(int envasesPendientes, int clientesActivos, int productosActivos) {
+    public ResumenDashboard(int envasesPendientes, BigDecimal totalGarantias, int productosActivos) {
         this.envasesPendientes = envasesPendientes;
-        this.clientesActivos = clientesActivos;
+        this.totalGarantias = totalGarantias;
         this.productosActivos = productosActivos;
     }
 
@@ -16,8 +18,8 @@ public class ResumenDashboard {
         return envasesPendientes;
     }
 
-    public int getClientesActivos() {
-        return clientesActivos;
+    public BigDecimal getTotalGarantias() {
+        return totalGarantias;
     }
 
     public int getProductosActivos() {

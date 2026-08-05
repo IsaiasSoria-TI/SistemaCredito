@@ -6,11 +6,14 @@ import com.sistemagarantia.model.Cliente;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
@@ -35,10 +38,9 @@ public final class ClientesPanel extends JPanel {
         DefaultTableModel modelo = crearModelo();
         PaginadorTabla<Cliente> paginador = new PaginadorTabla<>(modelo, this::convertirFila);
         buscador = new BuscadorTabla<>(
-                new String[]{"ID", "Nombre", "Estado"},
+                new String[]{"Nombre", "Estado"},
                 paginador,
                 (cliente, campo, texto) -> switch (campo) {
-                    case "ID" -> SwingUi.contieneBusqueda(cliente.getIdCliente(), texto);
                     case "Nombre" -> SwingUi.contieneBusqueda(SwingUi.nombreCompleto(cliente), texto);
                     case "Estado" -> SwingUi.coincideEstadoActivo(cliente.isActivo(), texto);
                     default -> true;
@@ -55,7 +57,7 @@ public final class ClientesPanel extends JPanel {
 
     private DefaultTableModel crearModelo() {
         return new DefaultTableModel(
-                new String[]{"ID", "Nombre", "Apellido paterno", "Apellido materno", "Teléfono", "Estado"},
+                new String[]{"ID", "Nombre", "Teléfono", "Estado"},
                 0
         ) {
             @Override
@@ -69,8 +71,6 @@ public final class ClientesPanel extends JPanel {
         return new Object[]{
                 cliente.getIdCliente(),
                 cliente.getNombre(),
-                cliente.getApellidoPaterno(),
-                cliente.getApellidoMaterno(),
                 cliente.getTelefono(),
                 cliente.isActivo() ? "Activo" : "Inactivo"
         };
@@ -78,8 +78,15 @@ public final class ClientesPanel extends JPanel {
 
     private void configurarTabla() {
         SwingUi.configurarTabla(tabla);
-        tabla.getColumnModel().removeColumn(tabla.getColumnModel().getColumn(0));
-        int[] anchos = {190, 180, 180, 130, 110};
+
+        DefaultTableCellRenderer celdasCentradas = new DefaultTableCellRenderer();
+        celdasCentradas.setHorizontalAlignment(SwingConstants.CENTER);
+        tabla.setDefaultRenderer(Object.class, celdasCentradas);
+        DefaultTableCellRenderer encabezadoCentrado =
+                (DefaultTableCellRenderer) tabla.getTableHeader().getDefaultRenderer();
+        encabezadoCentrado.setHorizontalAlignment(SwingConstants.CENTER);
+
+        int[] anchos = {90, 300, 180, 120};
         for (int i = 0; i < anchos.length; i++) {
             tabla.getColumnModel().getColumn(i).setPreferredWidth(anchos[i]);
         }
@@ -92,6 +99,8 @@ public final class ClientesPanel extends JPanel {
 
         JButton agregar = crearBoton("Agregar cliente");
         agregar.addActionListener(event -> mostrarFormulario(null));
+        JButton detalles = crearBoton("Detalles");
+        detalles.addActionListener(event -> mostrarDetallesSeleccionado());
         JButton editar = crearBoton("Editar");
         editar.addActionListener(event -> editarSeleccionado());
         JButton eliminar = crearBoton("Eliminar");
@@ -102,6 +111,7 @@ public final class ClientesPanel extends JPanel {
         JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         acciones.setOpaque(false);
         acciones.add(agregar);
+        acciones.add(detalles);
         acciones.add(editar);
         acciones.add(eliminar);
         acciones.add(actualizar);
@@ -229,6 +239,53 @@ public final class ClientesPanel extends JPanel {
         if (cliente != null) {
             mostrarFormulario(cliente);
         }
+    }
+
+    private void mostrarDetallesSeleccionado() {
+        Cliente cliente = obtenerSeleccionado("ver sus detalles");
+        if (cliente == null) {
+            return;
+        }
+
+        JPanel detalles = new JPanel(new GridBagLayout());
+        SwingUi.agregarCampoFormulario(
+                detalles,
+                0,
+                "ID",
+                new JLabel(String.valueOf(cliente.getIdCliente()))
+        );
+        SwingUi.agregarCampoFormulario(detalles, 1, "Nombre", new JLabel(cliente.getNombre()));
+        SwingUi.agregarCampoFormulario(
+                detalles,
+                2,
+                "Apellido paterno",
+                new JLabel(cliente.getApellidoPaterno())
+        );
+        SwingUi.agregarCampoFormulario(
+                detalles,
+                3,
+                "Apellido materno",
+                new JLabel(cliente.getApellidoMaterno())
+        );
+        SwingUi.agregarCampoFormulario(
+                detalles,
+                4,
+                "Teléfono",
+                new JLabel(cliente.getTelefono().isBlank() ? "No registrado" : cliente.getTelefono())
+        );
+        SwingUi.agregarCampoFormulario(
+                detalles,
+                5,
+                "Estado",
+                new JLabel(cliente.isActivo() ? "Activo" : "Inactivo")
+        );
+
+        JOptionPane.showMessageDialog(
+                this,
+                detalles,
+                "Detalles del cliente",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     private void eliminarSeleccionado() {
